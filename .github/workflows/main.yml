@@ -32,7 +32,7 @@ jobs:
           chmod 600 key.pem
 
           # Upload WAR file (change path if needed)
-          scp -i key.pem -o StrictHostKeyChecking=no target/*.war $TOMCAT_USER@$TOMCAT_HOST:/opt/tomcat/webapps/
+          scp -i key.pem -o StrictHostKeyChecking=no target/*.jar $TOMCAT_USER@$TOMCAT_HOST:/opt/tomcat/webapps/
 
           # (Optional) Restart Tomcat
           ssh -i key.pem -o StrictHostKeyChecking=no $TOMCAT_USER@$TOMCAT_HOST "sudo systemctl restart tomcat"
