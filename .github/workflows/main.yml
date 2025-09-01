@@ -30,14 +30,19 @@ jobs:
         run: |
             echo "$SSH_KEY" > key.pem
             chmod 600 key.pem
+  
+            FILE=github-action-maven-tutorial-1.0-SNAPSHOT-jar-with-dependencies.jar
 
-            ARTIFACT=$(basename target/*jar-with-dependencies.jar)
-            echo "Deploying $ARTIFACT"
+            echo "Uploading $FILE to EC2"
+            scp -i key.pem -o StrictHostKeyChecking=no target/$FILE $EC2_USER@$EC2_HOST:~/app.jar
 
-            scp -i key.pem -o StrictHostKeyChecking=no target/$ARTIFACT $TOMCAT_USER@$TOMCAT_HOST:~
+            echo "Restarting app on EC2"
+            ssh -i key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+            echo "Killing old Java app (if any)..."
+            pkill -f 'java -jar app.jar' || true
 
-            ssh -i key.pem -o StrictHostKeyChecking=no $TOMCAT_USER@$TOMCAT_HOST << EOF
-            sudo mv ~/$ARTIFACT /opt/tomcat/webapps/
-            sudo chown tomcat:tomcat /opt/tomcat/webapps/$ARTIFACT
-            sudo systemctl restart tomcat
+            echo "Starting new app..."
+            nohup java -jar app.jar > app.log 2>&1 &
+
+            echo "App started. Check app.log for logs."
             EOF
