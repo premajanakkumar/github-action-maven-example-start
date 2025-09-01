@@ -28,15 +28,16 @@ jobs:
           TOMCAT_HOST: ${{ secrets.TOMCAT_HOST }}
           SSH_KEY: ${{ secrets.SSH_KEY }}
         run: |
-           echo "$SSH_KEY" > key.pem
-           chmod 600 key.pem
+            echo "$SSH_KEY" > key.pem
+            chmod 600 key.pem
 
-            # Upload WAR/JAR to home directory (~) on EC2
-           scp -i key.pem -o StrictHostKeyChecking=no target/*.war $TOMCAT_USER@$TOMCAT_HOST:~
+            ARTIFACT=$(basename target/*jar-with-dependencies.jar)
+            echo "Deploying $ARTIFACT"
 
-           # SSH in and move file with sudo, set ownership, restart Tomcat
-           ssh -i key.pem -o StrictHostKeyChecking=no $TOMCAT_USER@$TOMCAT_HOST << EOF
-           sudo mv ~/$(basename target/*.war) /opt/tomcat/webapps/
-           sudo chown tomcat:tomcat /opt/tomcat/webapps/$(basename target/*.war)
-           sudo systemctl restart tomcat
-           EOF
+            scp -i key.pem -o StrictHostKeyChecking=no target/$ARTIFACT $TOMCAT_USER@$TOMCAT_HOST:~
+
+            ssh -i key.pem -o StrictHostKeyChecking=no $TOMCAT_USER@$TOMCAT_HOST << EOF
+            sudo mv ~/$ARTIFACT /opt/tomcat/webapps/
+            sudo chown tomcat:tomcat /opt/tomcat/webapps/$ARTIFACT
+            sudo systemctl restart tomcat
+            EOF
