@@ -28,11 +28,15 @@ jobs:
           TOMCAT_HOST: ${{ secrets.TOMCAT_HOST }}
           SSH_KEY: ${{ secrets.SSH_KEY }}
         run: |
-          echo "$SSH_KEY" > key.pem
-          chmod 600 key.pem
+           echo "$SSH_KEY" > key.pem
+           chmod 600 key.pem
 
-          # Upload WAR file (change path if needed)
-          scp -i key.pem -o StrictHostKeyChecking=no target/*.jar $TOMCAT_USER@$TOMCAT_HOST:/opt/tomcat/webapps/
+            # Upload WAR/JAR to home directory (~) on EC2
+           scp -i key.pem -o StrictHostKeyChecking=no target/*.war $TOMCAT_USER@$TOMCAT_HOST:~
 
-          # (Optional) Restart Tomcat
-          ssh -i key.pem -o StrictHostKeyChecking=no $TOMCAT_USER@$TOMCAT_HOST "sudo systemctl restart tomcat"
+           # SSH in and move file with sudo, set ownership, restart Tomcat
+           ssh -i key.pem -o StrictHostKeyChecking=no $TOMCAT_USER@$TOMCAT_HOST << EOF
+           sudo mv ~/$(basename target/*.war) /opt/tomcat/webapps/
+           sudo chown tomcat:tomcat /opt/tomcat/webapps/$(basename target/*.war)
+           sudo systemctl restart tomcat
+           EOF
